@@ -1,0 +1,306 @@
+{
+  "n_samples": 48960,
+  "n_features": 29,
+  "features": [
+    "ChEMBL ID",
+    "Name",
+    "Synonyms",
+    "Type",
+    "Max Phase",
+    "Molecular Weight",
+    "Targets",
+    "Bioactivities",
+    "AlogP",
+    "Polar Surface Area",
+    "HBA",
+    "HBD",
+    "#RO5 Violations",
+    "#Rotatable Bonds",
+    "Passes Ro3",
+    "QED Weighted",
+    "Aromatic Rings",
+    "Structure Type",
+    "Inorganic Flag",
+    "Heavy Atoms",
+    "Np Likeness Score",
+    "Molecular Formula",
+    "Smiles",
+    "Inchi Key",
+    "Inchi",
+    "Withdrawn Flag",
+    "Orphan",
+    "Records Key",
+    "Records Name"
+  ],
+  "dtypes": {
+    "ChEMBL ID": "object",
+    "Name": "object",
+    "Synonyms": "object",
+    "Type": "object",
+    "Max Phase": "float64",
+    "Molecular Weight": "float64",
+    "Targets": "float64",
+    "Bioactivities": "float64",
+    "AlogP": "float64",
+    "Polar Surface Area": "float64",
+    "HBA": "float64",
+    "HBD": "float64",
+    "#RO5 Violations": "float64",
+    "#Rotatable Bonds": "float64",
+    "Passes Ro3": "object",
+    "QED Weighted": "float64",
+    "Aromatic Rings": "float64",
+    "Structure Type": "object",
+    "Inorganic Flag": "int64",
+    "Heavy Atoms": "float64",
+    "Np Likeness Score": "float64",
+    "Molecular Formula": "object",
+    "Smiles": "object",
+    "Inchi Key": "object",
+    "Inchi": "object",
+    "Withdrawn Flag": "bool",
+    "Orphan": "int64",
+    "Records Key": "object",
+    "Records Name": "object"
+  },
+  "missing_values": {
+    "Synonyms": {
+      "count": 29720,
+      "percentage": 60.7
+    },
+    "Type": {
+      "count": 2,
+      "percentage": 0.0
+    },
+    "Max Phase": {
+      "count": 29736,
+      "percentage": 60.74
+    },
+    "Molecular Weight": {
+      "count": 4610,
+      "percentage": 9.42
+    },
+    "Targets": {
+      "count": 10015,
+      "percentage": 20.46
+    },
+    "Bioactivities": {
+      "count": 10015,
+      "percentage": 20.46
+    },
+    "AlogP": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "Polar Surface Area": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "HBA": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "HBD": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "#RO5 Violations": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "#Rotatable Bonds": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "Passes Ro3": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "QED Weighted": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "Aromatic Rings": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "Heavy Atoms": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "Np Likeness Score": {
+      "count": 9208,
+      "percentage": 18.81
+    },
+    "Molecular Formula": {
+      "count": 4610,
+      "percentage": 9.42
+    },
+    "Smiles": {
+      "count": 6811,
+      "percentage": 13.91
+    },
+    "Inchi Key": {
+      "count": 6811,
+      "percentage": 13.91
+    },
+    "Inchi": {
+      "count": 6812,
+      "percentage": 13.91
+    },
+    "Records Key": {
+      "count": 404,
+      "percentage": 0.83
+    },
+    "Records Name": {
+      "count": 404,
+      "percentage": 0.83
+    }
+  },
+  "statistics": {
+    "Molecular Weight": {
+      "min": 4.0,
+      "max": 8848.37,
+      "mean": 467.18663314543403,
+      "median": 398.46,
+      "std": 343.56087449282705,
+      "q1": 296.5425,
+      "q3": 528.5574999999999,
+      "iqr": 232.01499999999987
+    },
+    "Targets": {
+      "min": 1.0,
+      "max": 1346.0,
+      "mean": 22.012889973038902,
+      "median": 4.0,
+      "std": 69.48835853795617,
+      "q1": 2.0,
+      "q3": 10.0,
+      "iqr": 8.0
+    },
+    "Bioactivities": {
+      "min": 1.0,
+      "max": 19590.0,
+      "mean": 78.30943638464501,
+      "median": 6.0,
+      "std": 366.273857476142,
+      "q1": 3.0,
+      "q3": 23.0,
+      "iqr": 20.0
+    },
+    "AlogP": {
+      "min": -14.26,
+      "max": 18.1,
+      "mean": 3.0707330448782453,
+      "median": 3.09,
+      "std": 2.4298556337822164,
+      "q1": 1.63,
+      "q3": 4.49,
+      "iqr": 2.8600000000000003
+    },
+    "Polar Surface Area": {
+      "min": 0.0,
+      "max": 568.39,
+      "mean": 91.34088247132219,
+      "median": 77.76,
+      "std": 61.50183557558574,
+      "q1": 49.77,
+      "q3": 115.235,
+      "iqr": 65.465
+    },
+    "HBA": {
+      "min": 0.0,
+      "max": 31.0,
+      "mean": 5.5816562688669755,
+      "median": 5.0,
+      "std": 3.571185136645914,
+      "q1": 3.0,
+      "q3": 7.0,
+      "iqr": 4.0
+    },
+    "HBD": {
+      "min": 0.0,
+      "max": 25.0,
+      "mean": 2.1905564499899377,
+      "median": 2.0,
+      "std": 2.2021526656071315,
+      "q1": 1.0,
+      "q3": 3.0,
+      "iqr": 2.0
+    },
+    "#RO5 Violations": {
+      "min": 0.0,
+      "max": 4.0,
+      "mean": 0.5849517005433689,
+      "median": 0.0,
+      "std": 0.9019657716387274,
+      "q1": 0.0,
+      "q3": 1.0,
+      "iqr": 1.0
+    },
+    "#Rotatable Bonds": {
+      "min": 0.0,
+      "max": 55.0,
+      "mean": 5.411375528275307,
+      "median": 4.0,
+      "std": 4.864535017655012,
+      "q1": 2.0,
+      "q3": 7.0,
+      "iqr": 5.0
+    },
+    "QED Weighted": {
+      "min": 0.02,
+      "max": 0.95,
+      "mean": 0.487776715636949,
+      "median": 0.49,
+      "std": 0.22649116816072773,
+      "q1": 0.31,
+      "q3": 0.67,
+      "iqr": 0.36000000000000004
+    },
+    "Aromatic Rings": {
+      "min": 0.0,
+      "max": 10.0,
+      "mean": 1.468026765948883,
+      "median": 1.0,
+      "std": 1.3256217693528878,
+      "q1": 0.0,
+      "q3": 2.0,
+      "iqr": 2.0
+    },
+    "Heavy Atoms": {
+      "min": 1.0,
+      "max": 72.0,
+      "mean": 28.242629301670355,
+      "median": 26.0,
+      "std": 12.090385663132011,
+      "q1": 20.0,
+      "q3": 34.0,
+      "iqr": 14.0
+    },
+    "Np Likeness Score": {
+      "min": -3.16,
+      "max": 4.13,
+      "mean": 0.8776559669953712,
+      "median": 0.87,
+      "std": 1.5066801983400628,
+      "q1": -0.39,
+      "q3": 2.13,
+      "iqr": 2.52
+    }
+  },
+  "problems": [
+    "Feature 'Synonyms' are 60.7% valori lipsă (>30%)",
+    "Feature 'Max Phase' are 60.7% valori lipsă (>30%)",
+    "Feature 'Molecular Weight' are 6.8% outlieri",
+    "Feature 'Targets' are 15.0% outlieri",
+    "Feature 'Bioactivities' are 16.0% outlieri",
+    "Feature 'HBD' are 5.0% outlieri",
+    "Feature '#RO5 Violations' are 5.3% outlieri",
+    "Feature 'Passes Ro3' are dezechilibru de clasă (92.5% pentru clasa majoritară)",
+    "Feature 'Withdrawn Flag' are dezechilibru de clasă (99.3% pentru clasa majoritară)",
+    "6811 molecule au SMILES invalide sau lipsă"
+  ],
+  "valid_smiles": 42149,
+  "invalid_smiles": 6811
+}

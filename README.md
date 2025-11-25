@@ -2,13 +2,57 @@
 
 An AI-powered system for molecule recognition and analysis using GNN and RNN architectures.
 
+**Disciplina:** Rețele Neuronale  
+**Instituție:** POLITEHNICA București – FIIR
+
 ## Project Structure
 
--   `ai_model/`: PyTorch models (GNN + RNN) and training script.
--   `backend/`: Flask backend API.
--   `data/`: Data storage for CSVs, JSONs, PDFs, and Images.
--   `scripts/`: Utility scripts for data processing.
--   `src/`: Next.js Frontend source code.
+```
+chemnet-vision/
+├── README.md
+├── docs/
+│   └── datasets/           # Descriere seturi de date, rapoarte EDA
+├── data/
+│   ├── raw/                # Date brute
+│   ├── processed/          # Date curățate și transformate
+│   ├── train/              # Set de instruire
+│   ├── validation/         # Set de validare
+│   ├── test/               # Set de testare
+│   └── README.md           # Documentație dataset
+├── src/
+│   ├── preprocessing/      # Funcții pentru preprocesare
+│   ├── app/                # Next.js Frontend
+│   └── components/         # React Components
+├── ai_model/               # PyTorch models (GNN + RNN)
+├── backend/                # Flask backend API
+├── scripts/                # Utility scripts
+├── config/                 # Fișiere de configurare
+└── requirements.txt        # Dependențe Python
+```
+
+## Etapa 3: Analiza și Pregătirea Setului de Date
+
+### Preprocesare Date
+
+```bash
+python src/preprocessing/data_preprocessing.py
+```
+
+### Rezultate Preprocesare:
+
+-   **Dataset original:** 48,960 molecule (ChEMBL)
+-   **Dataset final:** 42,149 molecule cu SMILES valid
+-   **Împărțire:** Train 70% | Validation 15% | Test 15%
+
+### Pași de preprocesare aplicați:
+
+1. ✅ Eliminarea duplicatelor
+2. ✅ Validarea și filtrarea SMILES
+3. ✅ Imputarea valorilor lipsă (mediană)
+4. ✅ Tratarea outlierilor (IQR capping)
+5. ✅ Encoding variabile categoriale
+6. ✅ Extragerea descriptorilor moleculari (10 RDKit)
+7. ✅ Normalizare Min-Max
 
 ## Setup
 
@@ -26,6 +70,7 @@ An AI-powered system for molecule recognition and analysis using GNN and RNN arc
 
 2.  **Run Scripts:**
 
+    -   Preprocesare date: `python src/preprocessing/data_preprocessing.py`
     -   Convert CSV to JSON: `python scripts/csv_to_json.py`
     -   Download Wikipedia PDFs: `python scripts/wiki_pdf_downloader.py`
     -   Generate Images: `python scripts/generate_molecule_images.py`
@@ -49,6 +94,6 @@ An AI-powered system for molecule recognition and analysis using GNN and RNN arc
 ## Features
 
 -   **AI System:** Uses Graph Neural Networks (GNN) and Recurrent Neural Networks (RNN) for molecule analysis.
+-   **Data Processing:** Automated EDA, preprocessing, and train/val/test splitting.
 -   **Frontend:** Next.js 15+ with React Compiler and Tailwind CSS.
 -   **Backend:** Flask API.
--   **Data Processing:** Automated scripts for data conversion, PDF downloading, and 2D/3D image generation.

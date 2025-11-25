@@ -12,3 +12,5 @@ pandas
 numpy
 scikit-learn
 networkx
+seaborn
+matplotlib

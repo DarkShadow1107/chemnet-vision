@@ -1,7 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import sys
+import json
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
 # Add the root directory to sys.path to allow importing from ai_model
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -18,6 +21,79 @@ except ImportError:
 
 app = Flask(__name__)
 CORS(app)
+
+# Load molecules data
+MOLECULES_DATA = []
+try:
+    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'molecules.json')
+    if os.path.exists(data_path):
+        with open(data_path, 'r') as f:
+            MOLECULES_DATA = json.load(f)
+    else:
+        print(f"Warning: molecules.json not found at {data_path}")
+except Exception as e:
+    print(f"Error loading molecules.json: {e}")
+
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    images_dir = os.path.join(os.path.dirname(__file__), '..', 'data', '2d_images')
+    return send_from_directory(images_dir, filename)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    message = data.get('message', '').lower()
+    
+    if not message:
+        return jsonify({"error": "No message provided"}), 400
+
+    # Check for molecule names in the message
+    found_molecule = None
+    for mol in MOLECULES_DATA:
+        # Simple substring match
+        if mol.get('Name', '').lower() in message:
+            found_molecule = mol
+            break
+    
+    if found_molecule:
+        name = found_molecule['Name']
+        smiles = found_molecule.get('SMILES', '')
+        
+        # Get RAG info
+        rag_info = get_rag_context(name)
+        
+        # Generate 3D structure (SDF)
+        sdf_block = None
+        if smiles:
+            try:
+                mol_3d = Chem.MolFromSmiles(smiles)
+                if mol_3d:
+                    mol_3d = Chem.AddHs(mol_3d)
+                    AllChem.EmbedMolecule(mol_3d)
+                    sdf_block = Chem.MolToMolBlock(mol_3d)
+            except Exception as e:
+                print(f"Error generating 3D structure for {name}: {e}")
+
+        response = {
+            "role": "assistant",
+            "content": f"I found information about {name}.",
+            "moleculeData": {
+                "name": name,
+                "info": rag_info,
+                "structure": sdf_block,
+                "format": "sdf"
+            },
+            # Assuming images are named "Name.png"
+            "image": f"http://localhost:5000/images/{name}.png" 
+        }
+        return jsonify(response)
+    
+    # Default response if no molecule found
+    # In a real app, you might want to use an LLM here to chat generally
+    return jsonify({
+        "role": "assistant",
+        "content": "I can help you with molecule information. Try asking about a specific molecule like 'Aspirin' or 'Caffeine'."
+    })
 
 @app.route('/')
 def hello():

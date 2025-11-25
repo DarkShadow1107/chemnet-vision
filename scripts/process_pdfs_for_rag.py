@@ -47,9 +47,24 @@ def process_pdfs():
     chunks = text_splitter.split_documents(documents)
     print(f"Created {len(chunks)} chunks.")
 
+    # Save chunks to JSON
+    import json
+    chunks_data = [{'content': c.page_content, 'metadata': c.metadata} for c in chunks]
+    with open(os.path.join('data', 'chunks.json'), 'w') as f:
+        json.dump(chunks_data, f, indent=4)
+    print("Saved chunks to data/chunks.json")
+
     # Create Embeddings
     print("Creating embeddings (this may take a while)...")
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+    # Save embeddings to NPY
+    import numpy as np
+    # We need to embed the documents to get the vectors for saving
+    # Note: FAISS.from_documents also does this, but we do it here to save explicitly
+    vectors = embeddings.embed_documents([c.page_content for c in chunks])
+    np.save(os.path.join('data', 'embeddings.npy'), np.array(vectors))
+    print("Saved embeddings to data/embeddings.npy")
 
     # Create Vector Store
     vector_store = FAISS.from_documents(chunks, embeddings)

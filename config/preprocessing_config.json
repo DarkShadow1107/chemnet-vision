@@ -1,0 +1,190 @@
+{
+  "normalization_params": {
+    "Molecular Weight": {
+      "min": 4.0,
+      "max": 859.1400000000001,
+      "mean": 426.6471218771501,
+      "std": 190.34918853394876
+    },
+    "Targets": {
+      "min": 1.0,
+      "max": 19.5,
+      "mean": 6.704737953450853,
+      "std": 6.419352561385148
+    },
+    "Bioactivities": {
+      "min": 1.0,
+      "max": 43.0,
+      "mean": 13.754300220645804,
+      "std": 14.938269051342091
+    },
+    "AlogP": {
+      "min": -2.2349999999999994,
+      "max": 8.364999999999998,
+      "mean": 3.0730322190324797,
+      "std": 2.1945317490126386
+    },
+    "Polar Surface Area": {
+      "min": 0.0,
+      "max": 202.195,
+      "mean": 87.27035504994188,
+      "std": 49.75841071078793
+    },
+    "HBA": {
+      "min": 0.0,
+      "max": 13.0,
+      "mean": 5.419321929345892,
+      "std": 3.065755068216022
+    },
+    "HBD": {
+      "min": 0.0,
+      "max": 6.0,
+      "mean": 2.0389570333815747,
+      "std": 1.689544581768564
+    },
+    "#RO5 Violations": {
+      "min": 0.0,
+      "max": 2.5,
+      "mean": 0.5249946617950604,
+      "std": 0.8153443580608557
+    },
+    "#Rotatable Bonds": {
+      "min": 0.0,
+      "max": 14.5,
+      "mean": 5.051958528078958,
+      "std": 3.7378213579472743
+    },
+    "QED Weighted": {
+      "min": 0.02,
+      "max": 0.95,
+      "mean": 0.4879031530997177,
+      "std": 0.2199571101798296
+    },
+    "Aromatic Rings": {
+      "min": 0.0,
+      "max": 5.0,
+      "mean": 1.4325844029514343,
+      "std": 1.2610307499295477
+    },
+    "Heavy Atoms": {
+      "min": 1.0,
+      "max": 55.0,
+      "mean": 27.872737194239484,
+      "std": 11.07607546540872
+    },
+    "Np Likeness Score": {
+      "min": -3.16,
+      "max": 4.13,
+      "mean": 0.8772205746281051,
+      "std": 1.4632109514906435
+    },
+    "MolWeight_RDKit": {
+      "min": 4.003,
+      "max": 8848.365999999985,
+      "mean": 460.3297836340337,
+      "std": 342.8507893695037
+    },
+    "LogP_RDKit": {
+      "min": -98.19555999999903,
+      "max": 55.89239999999969,
+      "mean": 2.6295745059194786,
+      "std": 3.4974009839553926
+    },
+    "TPSA_RDKit": {
+      "min": 0.0,
+      "max": 3684.11000000001,
+      "mean": 114.98932952145958,
+      "std": 139.15805388429
+    },
+    "NumHDonors_RDKit": {
+      "min": 0.0,
+      "max": 131.0,
+      "mean": 2.901041543097108,
+      "std": 4.70072919808645
+    },
+    "NumHAcceptors_RDKit": {
+      "min": 0.0,
+      "max": 212.0,
+      "mean": 6.609694180170348,
+      "std": 6.56872487675865
+    },
+    "NumRotatableBonds_RDKit": {
+      "min": 0.0,
+      "max": 253.0,
+      "mean": 6.5997769816603,
+      "std": 9.384563405904236
+    },
+    "NumAromaticRings_RDKit": {
+      "min": 0.0,
+      "max": 30.0,
+      "mean": 1.5001304894540797,
+      "std": 1.4715618212797108
+    },
+    "FractionCSP3": {
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.49309722017835345,
+      "std": 0.2697182062579718
+    },
+    "NumHeteroatoms": {
+      "min": 0.0,
+      "max": 272.0,
+      "mean": 8.467175970960165,
+      "std": 9.22164908015464
+    },
+    "RingCount": {
+      "min": 0.0,
+      "max": 54.0,
+      "mean": 3.44869391919144,
+      "std": 2.3619334725138774
+    }
+  },
+  "split_info": {
+    "train_size": 29503,
+    "validation_size": 6323,
+    "test_size": 6323,
+    "train_pct": 69.99691570381266,
+    "validation_pct": 15.00154214809367,
+    "test_pct": 15.00154214809367,
+    "random_state": 42
+  },
+  "feature_columns": {
+    "numeric": [
+      "Molecular Weight",
+      "Targets",
+      "Bioactivities",
+      "AlogP",
+      "Polar Surface Area",
+      "HBA",
+      "HBD",
+      "#RO5 Violations",
+      "#Rotatable Bonds",
+      "QED Weighted",
+      "Aromatic Rings",
+      "Heavy Atoms",
+      "Np Likeness Score"
+    ],
+    "categorical": [
+      "Type",
+      "Structure Type",
+      "Passes Ro3"
+    ],
+    "molecular_descriptors": [
+      "MolWeight_RDKit",
+      "LogP_RDKit",
+      "TPSA_RDKit",
+      "NumHDonors_RDKit",
+      "NumHAcceptors_RDKit",
+      "NumRotatableBonds_RDKit",
+      "NumAromaticRings_RDKit",
+      "FractionCSP3",
+      "NumHeteroatoms",
+      "RingCount"
+    ],
+    "identifier": "ChEMBL ID",
+    "smiles": "Smiles",
+    "image_path": "image_path",
+    "has_image": "has_image"
+  },
+  "images_dir": "C:\\Users\\Alexandru Gabriel\\Desktop\\Clinical Death\\RN\\Project\\Artificial Intelligence System\\chemnet-vision\\data\\2d_images"
+}

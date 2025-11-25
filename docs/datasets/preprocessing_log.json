@@ -1,0 +1,326 @@
+{
+  "original_samples": 48960,
+  "steps": [
+    {
+      "step": "remove_duplicates",
+      "removed": 0
+    },
+    {
+      "step": "filter_valid_smiles",
+      "remaining": 42149
+    },
+    {
+      "step": "impute_missing",
+      "imputation_stats": {
+        "Targets": {
+          "method": "median",
+          "value": 4.0,
+          "imputed_count": 5414
+        },
+        "Bioactivities": {
+          "method": "median",
+          "value": 7.0,
+          "imputed_count": 5414
+        },
+        "AlogP": {
+          "method": "median",
+          "value": 3.09,
+          "imputed_count": 2397
+        },
+        "Polar Surface Area": {
+          "method": "median",
+          "value": 77.76,
+          "imputed_count": 2397
+        },
+        "HBA": {
+          "method": "median",
+          "value": 5.0,
+          "imputed_count": 2397
+        },
+        "HBD": {
+          "method": "median",
+          "value": 2.0,
+          "imputed_count": 2397
+        },
+        "#RO5 Violations": {
+          "method": "median",
+          "value": 0.0,
+          "imputed_count": 2397
+        },
+        "#Rotatable Bonds": {
+          "method": "median",
+          "value": 4.0,
+          "imputed_count": 2397
+        },
+        "QED Weighted": {
+          "method": "median",
+          "value": 0.49,
+          "imputed_count": 2397
+        },
+        "Aromatic Rings": {
+          "method": "median",
+          "value": 1.0,
+          "imputed_count": 2397
+        },
+        "Heavy Atoms": {
+          "method": "median",
+          "value": 26.0,
+          "imputed_count": 2397
+        },
+        "Np Likeness Score": {
+          "method": "median",
+          "value": 0.87,
+          "imputed_count": 2397
+        }
+      }
+    },
+    {
+      "step": "outlier_treatment",
+      "treatment": {
+        "Molecular Weight": {
+          "lower_bound": -46.38000000000005,
+          "upper_bound": 859.1400000000001,
+          "capped_count": 2845
+        },
+        "Targets": {
+          "lower_bound": -8.5,
+          "upper_bound": 19.5,
+          "capped_count": 6288
+        },
+        "Bioactivities": {
+          "lower_bound": -21.0,
+          "upper_bound": 43.0,
+          "capped_count": 6773
+        },
+        "AlogP": {
+          "lower_bound": -2.2349999999999994,
+          "upper_bound": 8.364999999999998,
+          "capped_count": 1465
+        },
+        "Polar Surface Area": {
+          "lower_bound": -37.605,
+          "upper_bound": 202.195,
+          "capped_count": 2339
+        },
+        "HBA": {
+          "lower_bound": -3.0,
+          "upper_bound": 13.0,
+          "capped_count": 1561
+        },
+        "HBD": {
+          "lower_bound": -2.0,
+          "upper_bound": 6.0,
+          "capped_count": 2007
+        },
+        "#RO5 Violations": {
+          "lower_bound": -1.5,
+          "upper_bound": 2.5,
+          "capped_count": 2094
+        },
+        "#Rotatable Bonds": {
+          "lower_bound": -5.5,
+          "upper_bound": 14.5,
+          "capped_count": 1894
+        },
+        "Aromatic Rings": {
+          "lower_bound": -3.0,
+          "upper_bound": 5.0,
+          "capped_count": 266
+        },
+        "Heavy Atoms": {
+          "lower_bound": -1.0,
+          "upper_bound": 55.0,
+          "capped_count": 1428
+        }
+      }
+    },
+    {
+      "step": "categorical_encoding",
+      "encoding_maps": {
+        "Type": {
+          "Oligonucleotide": 0,
+          "Oligosaccharide": 1,
+          "Protein": 2,
+          "Small molecule": 3,
+          "Unknown": 4,
+          "nan": 5
+        },
+        "Passes Ro3": {
+          "Y": 1,
+          "N": 0
+        },
+        "Structure Type": {
+          "BOTH": 0,
+          "MOL": 1
+        }
+      }
+    },
+    {
+      "step": "molecular_descriptors",
+      "features_added": [
+        "MolWeight_RDKit",
+        "LogP_RDKit",
+        "TPSA_RDKit",
+        "NumHDonors_RDKit",
+        "NumHAcceptors_RDKit",
+        "NumRotatableBonds_RDKit",
+        "NumAromaticRings_RDKit",
+        "FractionCSP3",
+        "NumHeteroatoms",
+        "RingCount"
+      ]
+    },
+    {
+      "step": "normalization",
+      "method": "min-max",
+      "params": {
+        "Molecular Weight": {
+          "min": 4.0,
+          "max": 859.1400000000001,
+          "mean": 426.6471218771501,
+          "std": 190.34918853394876
+        },
+        "Targets": {
+          "min": 1.0,
+          "max": 19.5,
+          "mean": 6.704737953450853,
+          "std": 6.419352561385148
+        },
+        "Bioactivities": {
+          "min": 1.0,
+          "max": 43.0,
+          "mean": 13.754300220645804,
+          "std": 14.938269051342091
+        },
+        "AlogP": {
+          "min": -2.2349999999999994,
+          "max": 8.364999999999998,
+          "mean": 3.0730322190324797,
+          "std": 2.1945317490126386
+        },
+        "Polar Surface Area": {
+          "min": 0.0,
+          "max": 202.195,
+          "mean": 87.27035504994188,
+          "std": 49.75841071078793
+        },
+        "HBA": {
+          "min": 0.0,
+          "max": 13.0,
+          "mean": 5.419321929345892,
+          "std": 3.065755068216022
+        },
+        "HBD": {
+          "min": 0.0,
+          "max": 6.0,
+          "mean": 2.0389570333815747,
+          "std": 1.689544581768564
+        },
+        "#RO5 Violations": {
+          "min": 0.0,
+          "max": 2.5,
+          "mean": 0.5249946617950604,
+          "std": 0.8153443580608557
+        },
+        "#Rotatable Bonds": {
+          "min": 0.0,
+          "max": 14.5,
+          "mean": 5.051958528078958,
+          "std": 3.7378213579472743
+        },
+        "QED Weighted": {
+          "min": 0.02,
+          "max": 0.95,
+          "mean": 0.4879031530997177,
+          "std": 0.2199571101798296
+        },
+        "Aromatic Rings": {
+          "min": 0.0,
+          "max": 5.0,
+          "mean": 1.4325844029514343,
+          "std": 1.2610307499295477
+        },
+        "Heavy Atoms": {
+          "min": 1.0,
+          "max": 55.0,
+          "mean": 27.872737194239484,
+          "std": 11.07607546540872
+        },
+        "Np Likeness Score": {
+          "min": -3.16,
+          "max": 4.13,
+          "mean": 0.8772205746281051,
+          "std": 1.4632109514906435
+        },
+        "MolWeight_RDKit": {
+          "min": 4.003,
+          "max": 8848.365999999985,
+          "mean": 460.3297836340337,
+          "std": 342.8507893695037
+        },
+        "LogP_RDKit": {
+          "min": -98.19555999999903,
+          "max": 55.89239999999969,
+          "mean": 2.6295745059194786,
+          "std": 3.4974009839553926
+        },
+        "TPSA_RDKit": {
+          "min": 0.0,
+          "max": 3684.11000000001,
+          "mean": 114.98932952145958,
+          "std": 139.15805388429
+        },
+        "NumHDonors_RDKit": {
+          "min": 0.0,
+          "max": 131.0,
+          "mean": 2.901041543097108,
+          "std": 4.70072919808645
+        },
+        "NumHAcceptors_RDKit": {
+          "min": 0.0,
+          "max": 212.0,
+          "mean": 6.609694180170348,
+          "std": 6.56872487675865
+        },
+        "NumRotatableBonds_RDKit": {
+          "min": 0.0,
+          "max": 253.0,
+          "mean": 6.5997769816603,
+          "std": 9.384563405904236
+        },
+        "NumAromaticRings_RDKit": {
+          "min": 0.0,
+          "max": 30.0,
+          "mean": 1.5001304894540797,
+          "std": 1.4715618212797108
+        },
+        "FractionCSP3": {
+          "min": 0.0,
+          "max": 1.0,
+          "mean": 0.49309722017835345,
+          "std": 0.2697182062579718
+        },
+        "NumHeteroatoms": {
+          "min": 0.0,
+          "max": 272.0,
+          "mean": 8.467175970960165,
+          "std": 9.22164908015464
+        },
+        "RingCount": {
+          "min": 0.0,
+          "max": 54.0,
+          "mean": 3.44869391919144,
+          "std": 2.3619334725138774
+        }
+      }
+    },
+    {
+      "step": "image_correlation",
+      "images_found": 40018,
+      "images_missing": 2131,
+      "coverage_pct": 94.94
+    }
+  ],
+  "final_samples": 42149,
+  "final_features": 67
+}
