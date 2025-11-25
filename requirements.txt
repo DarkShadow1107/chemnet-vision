@@ -1,0 +1,14 @@
+flask
+flask-cors
+torch
+torchvision
+torchaudio
+torch_geometric
+rdkit-pypi
+py3Dmol
+requests
+wikipedia
+pandas
+numpy
+scikit-learn
+networkx
