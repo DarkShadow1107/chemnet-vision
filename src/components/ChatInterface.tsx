@@ -184,8 +184,10 @@ export default function ChatInterface() {
 						? {
 								name: data.molecule,
 								info: data.info,
-								structure: data.structure, // Expecting SDF/PDB string from backend
-								format: "sdf", // Defaulting to SDF for now
+								smiles: data.smiles,
+								structure: data.structure, // SDF string from backend
+								format: data.format || "sdf",
+								image2d: data.image2d, // Base64 2D image from RDKit
 						  }
 						: undefined,
 				};

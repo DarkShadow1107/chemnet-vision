@@ -30,8 +30,10 @@ export type Message = {
 	moleculeData?: {
 		name: string;
 		info: string;
-		structure?: string; // SDF or PDB string
+		smiles?: string;
+		structure?: string; // SDF or PDB string for 3D
 		format?: "sdf" | "pdb";
+		image2d?: string; // Base64 encoded 2D image from RDKit
 	};
 };
 
@@ -61,8 +63,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 					</div>
 				)}
 
-				{/* User Uploaded Image */}
-				{message.image && (
+				{/* User Uploaded Image - only show for user messages with blob URLs */}
+				{message.image && isUser && (
 					<div className="mb-4 relative h-56 w-full min-w-60 rounded-xl overflow-hidden bg-black/40 border border-white/5">
 						<Image src={message.image} alt="Uploaded molecule" fill className="object-contain p-2" />
 					</div>
@@ -92,37 +94,82 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 								</svg>
 								{message.moleculeData.name}
 							</h3>
+							{message.moleculeData.smiles && (
+								<p className="text-xs text-slate-500 mt-1 font-mono bg-black/30 px-2 py-1 rounded inline-block">
+									SMILES: {message.moleculeData.smiles}
+								</p>
+							)}
 							<p className="text-sm text-slate-300 mt-2 leading-relaxed">{message.moleculeData.info}</p>
 						</div>
 
-						{/* 3D Viewer */}
-						{message.moleculeData.structure && (
-							<div className="mt-4 rounded-xl overflow-hidden border border-white/10 bg-black/20 shadow-inner">
-								<div className="bg-white/5 px-4 py-2 border-b border-white/5 flex justify-between items-center">
-									<p className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center gap-2">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											viewBox="0 0 24 24"
-											fill="currentColor"
-											className="w-4 h-4"
-										>
-											<path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" />
-										</svg>
-										3D Structure
-									</p>
-									<span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
-										Interactive
-									</span>
+						{/* 2D and 3D Viewer Grid */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							{/* 2D Structure */}
+							{message.moleculeData.image2d && (
+								<div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 shadow-inner">
+									<div className="bg-white/5 px-4 py-2 border-b border-white/5 flex justify-between items-center">
+										<p className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center gap-2">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 24 24"
+												fill="currentColor"
+												className="w-4 h-4"
+											>
+												<path
+													fillRule="evenodd"
+													d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z"
+													clipRule="evenodd"
+												/>
+											</svg>
+											2D Structure (RDKit)
+										</p>
+										<span className="text-[10px] bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full border border-green-500/30">
+											Static
+										</span>
+									</div>
+									<div className="p-4 flex items-center justify-center bg-white rounded-b-xl">
+										<img
+											src={message.moleculeData.image2d}
+											alt={`2D structure of ${message.moleculeData.name}`}
+											className="max-w-full h-auto max-h-64 object-contain"
+										/>
+									</div>
 								</div>
-								<div className="p-1">
-									<MoleculeViewer
-										sdf={message.moleculeData.format === "sdf" ? message.moleculeData.structure : undefined}
-										pdb={message.moleculeData.format === "pdb" ? message.moleculeData.structure : undefined}
-										format={message.moleculeData.format}
-									/>
+							)}
+
+							{/* 3D Viewer */}
+							{message.moleculeData.structure && (
+								<div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 shadow-inner">
+									<div className="bg-white/5 px-4 py-2 border-b border-white/5 flex justify-between items-center">
+										<p className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center gap-2">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 24 24"
+												fill="currentColor"
+												className="w-4 h-4"
+											>
+												<path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" />
+											</svg>
+											3D Structure (Py3Dmol)
+										</p>
+										<span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">
+											Interactive
+										</span>
+									</div>
+									<div className="p-1">
+										<MoleculeViewer
+											sdf={
+												message.moleculeData.format === "sdf" ? message.moleculeData.structure : undefined
+											}
+											pdb={
+												message.moleculeData.format === "pdb" ? message.moleculeData.structure : undefined
+											}
+											format={message.moleculeData.format}
+										/>
+									</div>
 								</div>
-							</div>
-						)}
+							)}
+						</div>
 					</div>
 				)}
 			</div>
