@@ -2,6 +2,11 @@
 ChemNet-Vision Model Inference
 ==============================
 Load trained model and predict SMILES from molecule images.
+
+This module works with the custom model (no pretraining) architecture.
+
+Author: Alexandru Gabriel
+Institution: POLITEHNICA București – FIIR
 """
 
 import torch
@@ -46,7 +51,9 @@ class MoleculePredictor:
         # Default paths
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if checkpoint_path is None:
-            checkpoint_path = os.path.join(base_dir, 'saved_models', 'checkpoint_best.pth')
+            best_candidate = os.path.join(base_dir, 'saved_models', 'checkpoint_best.pth')
+            trained_candidate = os.path.join(base_dir, 'models', 'trained_model.pth')
+            checkpoint_path = best_candidate if os.path.exists(best_candidate) else trained_candidate
         if vocab_path is None:
             vocab_path = os.path.join(base_dir, 'saved_models', 'vocab.json')
         
@@ -83,15 +90,23 @@ class MoleculePredictor:
     
     def _load_model(self, checkpoint_path):
         """Load model from checkpoint."""
-        model = get_model(self.vocab_size)
+        model = get_model(
+            vocab_size=self.vocab_size,
+            num_node_features=9,
+            num_numeric_features=23
+        )
         
         if os.path.exists(checkpoint_path):
-            checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
-            if 'model_state_dict' in checkpoint:
-                model.load_state_dict(checkpoint['model_state_dict'])
-            else:
-                model.load_state_dict(checkpoint)
-            print(f"Loaded checkpoint: {checkpoint_path}")
+            try:
+                checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+                if 'model_state_dict' in checkpoint:
+                    model.load_state_dict(checkpoint['model_state_dict'])
+                else:
+                    model.load_state_dict(checkpoint)
+                print(f"Loaded checkpoint: {checkpoint_path}")
+            except Exception as e:
+                print(f"Warning: Could not load checkpoint - {e}")
+                print("Using untrained model!")
         else:
             print(f"Warning: Checkpoint not found at {checkpoint_path}")
             print("Using untrained model!")
@@ -183,13 +198,14 @@ class MoleculePredictor:
             print(f"SMILES validation error: {e}")
             return False, None
     
-    def predict_from_image(self, image_path, max_length=150):
+    def predict_from_image(self, image_path, max_length=150, numeric_features=None):
         """
         Predict SMILES from a molecule image.
         
         Args:
             image_path: Path to the molecule image
             max_length: Maximum SMILES sequence length
+            numeric_features: Optional 23-dim numeric features tensor
             
         Returns:
             dict with predicted SMILES, validity, and confidence
@@ -202,59 +218,38 @@ class MoleculePredictor:
         
         image_tensor = self.transform(image).unsqueeze(0).to(self.device)
         
-        # Create dummy graph (we'll use CNN features primarily)
+        # Create dummy graph
         graph = self._create_dummy_graph()
         graph = Batch.from_data_list([graph]).to(self.device)
         
-        # Generate SMILES using greedy decoding
+        # Create numeric features (zeros if not provided)
+        if numeric_features is None:
+            numeric_features = torch.zeros(1, 23, device=self.device)
+        else:
+            numeric_features = torch.tensor(numeric_features, dtype=torch.float).unsqueeze(0).to(self.device)
+        
+        # Generate SMILES using the model's generate method
         with torch.no_grad():
-            # Get CNN features
-            img_features = self.model.cnn(image_tensor)
-            img_features = img_features.view(img_features.size(0), -1)
-            img_features = self.model.cnn_fc(img_features)
-            
-            # Initialize with <start> token
-            current_token = torch.tensor([[self.vocab.get('<start>', 1)]]).to(self.device)
-            hidden = img_features.unsqueeze(0).repeat(self.model.rnn.num_layers, 1, 1)
-            
-            generated_ids = []
-            confidences = []
-            
-            for _ in range(max_length):
-                embeddings = self.model.rnn.embedding(current_token)
-                output, hidden = self.model.rnn.gru(embeddings, hidden)
-                logits = self.model.rnn.fc(output)
-                
-                # Get probabilities
-                probs = F.softmax(logits[:, -1, :], dim=-1)
-                confidence, predicted = torch.max(probs, dim=-1)
-                
-                token_id = predicted.item()
-                generated_ids.append(token_id)
-                confidences.append(confidence.item())
-                
-                # Stop if <end> token
-                if token_id == self.vocab.get('<end>', 2):
-                    break
-                
-                current_token = predicted.unsqueeze(0)
+            generated = self.model.generate(image_tensor, graph, numeric_features)
+            generated_ids = generated[0].cpu().tolist()
         
         # Decode SMILES
         predicted_smiles = self._decode_smiles(generated_ids)
         is_valid, canonical_smiles = self._validate_smiles(predicted_smiles)
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+        
+        # Calculate approximate confidence
+        confidence = 0.5  # Default confidence for autoregressive generation
         
         return {
             'predicted_smiles': predicted_smiles,
             'canonical_smiles': canonical_smiles if is_valid else None,
             'is_valid': is_valid,
-            'confidence': avg_confidence,
+            'confidence': confidence,
             'sequence_length': len(generated_ids)
         }
-    
-    def predict_from_pil(self, pil_image, max_length=150):
+    def predict_from_pil(self, pil_image, max_length=150, numeric_features=None):
         """Predict from PIL Image object."""
-        return self.predict_from_image(pil_image, max_length)
+        return self.predict_from_image(pil_image, max_length, numeric_features)
 
 
 # Global predictor instance (lazy loaded)

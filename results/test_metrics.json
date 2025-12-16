@@ -1,0 +1,8 @@
+{
+  "token_accuracy": 0.8006795016987542,
+  "token_precision_macro": 0.726746023867572,
+  "token_recall_macro": 0.6857999850989696,
+  "token_f1_macro": 0.6806796366361118,
+  "valid_smiles_rate": 0.125,
+  "notes": "Token-level metrics for SMILES generation using next-token teacher forcing (shifted); <pad> excluded."
+}

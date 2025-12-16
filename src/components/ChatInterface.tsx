@@ -10,6 +10,8 @@ type Conversation = {
 	updatedAt: string;
 };
 
+type InferenceMode = "ai" | "fallback" | "auto";
+
 export default function ChatInterface() {
 	const [conversations, setConversations] = useState<Conversation[]>([]);
 	const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -17,6 +19,8 @@ export default function ChatInterface() {
 	const [input, setInput] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+	const [inferenceMode, setInferenceMode] = useState<InferenceMode>("auto");
+	const [aiAvailable, setAiAvailable] = useState<boolean>(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -24,9 +28,60 @@ export default function ChatInterface() {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
 
-	// Load conversations on mount
+	const BACKEND_URL = "http://localhost:5000";
+
+	// Fetch current inference mode from backend
+	const fetchInferenceMode = async () => {
+		try {
+			const res = await fetch(`${BACKEND_URL}/mode`, {
+				method: "GET",
+				headers: {
+					Accept: "application/json",
+				},
+			});
+			if (!res.ok) {
+				throw new Error(`HTTP error! status: ${res.status}`);
+			}
+			const data = await res.json();
+			console.log("Inference mode fetched:", data);
+			setInferenceMode(data.mode || "auto");
+			setAiAvailable(data.ai_available || false);
+		} catch (error) {
+			console.error("Failed to fetch inference mode:", error);
+			setAiAvailable(false);
+			// Retry after 2 seconds
+			setTimeout(fetchInferenceMode, 2000);
+		}
+	};
+
+	// Set inference mode on backend
+	const updateInferenceMode = async (mode: InferenceMode) => {
+		try {
+			const res = await fetch(`${BACKEND_URL}/mode`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+				},
+				body: JSON.stringify({ mode }),
+			});
+			if (!res.ok) {
+				throw new Error(`HTTP error! status: ${res.status}`);
+			}
+			const data = await res.json();
+			console.log("Inference mode updated:", data);
+			if (data.mode) {
+				setInferenceMode(data.mode);
+			}
+		} catch (error) {
+			console.error("Failed to set inference mode:", error);
+		}
+	};
+
+	// Load conversations and mode on mount
 	useEffect(() => {
 		fetchConversations();
+		fetchInferenceMode();
 	}, []);
 
 	// Save conversation whenever messages change
@@ -119,7 +174,7 @@ export default function ChatInterface() {
 		setLoading(true);
 
 		try {
-			const response = await fetch("http://localhost:5000/chat", {
+			const response = await fetch(`${BACKEND_URL}/chat`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -170,7 +225,7 @@ export default function ChatInterface() {
 			formData.append("file", file);
 
 			try {
-				const response = await fetch("http://localhost:5000/predict", {
+				const response = await fetch(`${BACKEND_URL}/predict`, {
 					method: "POST",
 					body: formData,
 				});
@@ -245,7 +300,7 @@ export default function ChatInterface() {
 				<div className="p-4 flex flex-col h-full">
 					<button
 						onClick={startNewConversation}
-						className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-6 shadow-lg shadow-blue-900/20"
+						className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 mb-4 shadow-lg shadow-blue-900/20"
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -259,6 +314,63 @@ export default function ChatInterface() {
 						</svg>
 						New Chat
 					</button>
+
+					{/* Inference Mode Selector */}
+					<div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/10">
+						<div className="flex items-center justify-between mb-2">
+							<span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inference Mode</span>
+							{aiAvailable ? (
+								<span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full">AI Ready</span>
+							) : (
+								<span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full">
+									AI Offline
+								</span>
+							)}
+						</div>
+						<div className="flex gap-1">
+							<button
+								onClick={() => updateInferenceMode("ai")}
+								disabled={!aiAvailable}
+								className={`flex-1 py-2 px-2 text-xs font-medium rounded-lg transition-all ${
+									inferenceMode === "ai"
+										? "bg-blue-600 text-white shadow-lg"
+										: aiAvailable
+										? "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+										: "bg-white/5 text-slate-600 cursor-not-allowed"
+								}`}
+								title="Use neural network for predictions"
+							>
+								🧠 AI
+							</button>
+							<button
+								onClick={() => updateInferenceMode("auto")}
+								className={`flex-1 py-2 px-2 text-xs font-medium rounded-lg transition-all ${
+									inferenceMode === "auto"
+										? "bg-purple-600 text-white shadow-lg"
+										: "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+								}`}
+								title="Try AI first, fallback to database if fails"
+							>
+								⚡ Auto
+							</button>
+							<button
+								onClick={() => updateInferenceMode("fallback")}
+								className={`flex-1 py-2 px-2 text-xs font-medium rounded-lg transition-all ${
+									inferenceMode === "fallback"
+										? "bg-orange-600 text-white shadow-lg"
+										: "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+								}`}
+								title="Use database lookup only (no AI)"
+							>
+								📚 DB
+							</button>
+						</div>
+						<p className="text-xs text-slate-500 mt-2">
+							{inferenceMode === "ai" && "Using neural network for predictions"}
+							{inferenceMode === "auto" && "AI first, then database fallback"}
+							{inferenceMode === "fallback" && "Database lookup only (no AI)"}
+						</p>
+					</div>
 
 					<div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
 						<h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-2">Recent</h3>

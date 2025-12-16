@@ -1,0 +1,10 @@
+epochs: 50
+batch_size: 8
+learning_rate: 0.001
+max_seq_len: 150
+num_workers: 0
+early_stopping: true
+early_stopping_patience: 5
+scheduler: ReduceLROnPlateau
+augment: true
+seed: 42

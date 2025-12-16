@@ -50,10 +50,11 @@ echo ========================================
 echo.
 echo This will train the ChemNet-Vision neural network.
 echo Training may take a long time depending on your hardware.
+echo Using Etapa 5 defaults: --epochs 50 --batch_size 8 --early_stopping --patience 5 --augment
 echo.
 pause
 
-.venv\Scripts\python.exe ai_model\train_model.py
+.venv\Scripts\python.exe ai_model\train_model.py --epochs 50 --batch_size 8 --early_stopping --patience 5 --augment
 
 echo.
 echo ========================================
