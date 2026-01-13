@@ -5,6 +5,8 @@ import sys
 import json
 import io
 import base64
+import torch
+import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
 
@@ -32,28 +34,54 @@ CORS(app)
 #       'auto' = Try AI first, fallback to database if fails
 INFERENCE_MODE = os.environ.get('INFERENCE_MODE', 'auto').lower()
 
-# Check if AI model is available
-AI_MODEL_AVAILABLE = False
+# ============================================================================
+# MOLECULE DATA LOADING
+# ============================================================================
+MOLECULES_DATA = []
 try:
-    from ai_model.inference import MoleculePredictor, predict_molecule
-    # Try to instantiate predictor to check if model is available
-    trained_checkpoint_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'trained_model.pth')
-    fallback_checkpoint_path = os.path.join(os.path.dirname(__file__), '..', 'saved_models', 'checkpoint_best.pth')
-    # Prefer best checkpoint if present; fallback to Etapa 5 deliverable path
-    checkpoint_path = fallback_checkpoint_path if os.path.exists(fallback_checkpoint_path) else trained_checkpoint_path
-
-    if os.path.exists(checkpoint_path):
-        AI_MODEL_AVAILABLE = True
-        print(f"✓ AI Model available at: {checkpoint_path}")
+    processed_csv = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'molecules_processed.csv')
+    if os.path.exists(processed_csv):
+        # Load necessary columns for the NLP flow
+        df = pd.read_csv(processed_csv)
+        MOLECULES_DATA = df.to_dict('records')
+        print(f"✓ Loaded {len(MOLECULES_DATA)} molecules from processed CSV.")
     else:
-        print(f"✗ AI Model checkpoint not found at: {checkpoint_path}")
-except ImportError as e:
-    print(f"✗ AI Model import failed: {e}")
+        molecules_json = os.path.join(os.path.dirname(__file__), '..', 'data', 'molecules.json')
+        if os.path.exists(molecules_json):
+            with open(molecules_json, 'r') as f:
+                MOLECULES_DATA = json.load(f)
+                print(f"✓ Loaded {len(MOLECULES_DATA)} molecules from molecules.json")
 except Exception as e:
-    print(f"✗ AI Model initialization error: {e}")
+    print(f"✗ Error loading molecules data: {e}")
+
+
+# ============================================================================
+# NLP MODEL LOADING
+# ============================================================================
+NLP_MODEL_AVAILABLE = False
+nlp_model = None
+nlp_vocab = {}
+
+try:
+    from ai_model.model import get_nlp_model
+    nlp_checkpoint = os.path.join(os.path.dirname(__file__), '..', 'models', 'nlp_model.pth')
+    nlp_vocab_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'nlp_vocab.json')
+    
+    if os.path.exists(nlp_checkpoint) and os.path.exists(nlp_vocab_path):
+        with open(nlp_vocab_path, 'r') as f:
+            nlp_vocab = json.load(f)
+        nlp_model = get_nlp_model(len(nlp_vocab))
+        nlp_model.load_state_dict(torch.load(nlp_checkpoint, map_location='cpu', weights_only=True))
+        nlp_model.eval()
+        NLP_MODEL_AVAILABLE = True
+        print(f"✓ NLP Model loaded from: {nlp_checkpoint}")
+    else:
+        print(f"✗ NLP Model not found at: {nlp_checkpoint}")
+except Exception as e:
+    print(f"✗ NLP Model loading error: {e}")
 
 print(f"Inference Mode: {INFERENCE_MODE.upper()}")
-print(f"AI Model Available: {AI_MODEL_AVAILABLE}")
+print(f"NLP Model Available: {NLP_MODEL_AVAILABLE}")
 
 
 def get_current_mode():
@@ -135,18 +163,6 @@ def generate_3d_structure(smiles: str) -> str:
         print(f"Error generating 3D structure: {e}")
         return None
 
-# Load molecules data
-MOLECULES_DATA = []
-try:
-    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'molecules.json')
-    if os.path.exists(data_path):
-        with open(data_path, 'r') as f:
-            MOLECULES_DATA = json.load(f)
-    else:
-        print(f"Warning: molecules.json not found at {data_path}")
-except Exception as e:
-    print(f"Error loading molecules.json: {e}")
-
 @app.route('/images/<path:filename>')
 def serve_image(filename):
     images_dir = os.path.join(os.path.dirname(__file__), '..', 'data', '2d_images')
@@ -181,93 +197,6 @@ def get_3d_structure(molecule_name):
     return jsonify({"error": "Molecule not found or SMILES invalid"}), 404
 
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.json
-    message = data.get('message', '').lower().strip()
-    
-    if not message:
-        return jsonify({"error": "No message provided"}), 400
-
-    # Check for molecule names in the message with improved matching
-    found_molecule = None
-    best_match_length = 0
-    
-    for mol in MOLECULES_DATA:
-        mol_name = mol.get('Name', '')
-        mol_name_lower = mol_name.lower()
-        
-        # Skip very short names (like single digits) to avoid false matches
-        if len(mol_name) < 3:
-            continue
-        
-        # Check if the molecule name appears as a whole word in the message
-        # Use word boundary checking to avoid partial matches
-        import re
-        # Escape special regex characters in molecule name
-        escaped_name = re.escape(mol_name_lower)
-        # Match as whole word (with word boundaries or at start/end of string)
-        pattern = r'(?:^|[\s,;:.\'"()\[\]{}])' + escaped_name + r'(?:$|[\s,;:.\'"()\[\]{}?!])'
-        
-        if re.search(pattern, message) or mol_name_lower == message:
-            # Prefer longer matches (more specific molecule names)
-            if len(mol_name) > best_match_length:
-                best_match_length = len(mol_name)
-                found_molecule = mol
-    
-    if found_molecule:
-        name = found_molecule['Name']
-        # Check for SMILES with different key capitalization
-        smiles = found_molecule.get('SMILES', '') or found_molecule.get('Smiles', '') or found_molecule.get('smiles', '')
-        
-        # Get RAG info
-        rag_info = get_rag_context(name)
-        
-        # Generate 2D image (base64 encoded)
-        image_2d = None
-        if smiles:
-            image_2d = generate_2d_image(smiles)
-        
-        # Generate 3D structure (SDF)
-        sdf_block = None
-        if smiles:
-            sdf_block = generate_3d_structure(smiles)
-
-        response = {
-            "role": "assistant",
-            "content": f"I found information about **{name}**. Here's what I know:",
-            "moleculeData": {
-                "name": name,
-                "smiles": smiles,
-                "info": rag_info,
-                "structure": sdf_block,
-                "format": "sdf",
-                "image2d": image_2d  # Base64 encoded 2D image from RDKit
-            }
-        }
-        return jsonify(response)
-    
-    # Default response if no molecule found
-    # Suggest some actual molecules from the database
-    sample_molecules = []
-    for mol in MOLECULES_DATA[:100]:
-        name = mol.get('Name', '')
-        if len(name) >= 5 and name.isalpha() == False:  # Get interesting names
-            sample_molecules.append(name)
-        if len(sample_molecules) >= 5:
-            break
-    
-    if not sample_molecules:
-        sample_molecules = [m.get('Name', '') for m in MOLECULES_DATA[:5]]
-    
-    suggestions = ", ".join([f"'{m}'" for m in sample_molecules[:3]])
-    
-    return jsonify({
-        "role": "assistant",
-        "content": f"I couldn't find a molecule matching your query. Try asking about a specific molecule by its exact name.\n\nHere are some molecules in my database: {suggestions}\n\nYou can also upload a 2D molecule image for analysis!"
-    })
-
-
 @app.route('/search', methods=['GET'])
 def search_molecules():
     """Search for molecules by name (partial match)."""
@@ -296,7 +225,7 @@ def hello():
     return jsonify({
         "message": "ChemNet-Vision Backend is running",
         "inference_mode": INFERENCE_MODE,
-        "ai_model_available": AI_MODEL_AVAILABLE,
+        "ai_model_available": NLP_MODEL_AVAILABLE,
         "endpoints": {
             "/chat": "POST - Chat with molecule database",
             "/predict": "POST - Predict molecule from image",
@@ -316,7 +245,7 @@ def mode_endpoint():
     if request.method == 'GET':
         return jsonify({
             "mode": INFERENCE_MODE,
-            "ai_available": AI_MODEL_AVAILABLE,
+            "ai_available": NLP_MODEL_AVAILABLE,
             "description": {
                 "ai": "Use neural network for all predictions",
                 "fallback": "Use database lookup only (no AI)",
@@ -331,13 +260,106 @@ def mode_endpoint():
     if new_mode not in ['ai', 'fallback', 'auto']:
         return jsonify({"error": "Invalid mode. Use 'ai', 'fallback', or 'auto'"}), 400
     
-    if new_mode == 'ai' and not AI_MODEL_AVAILABLE:
+    if new_mode == 'ai' and not NLP_MODEL_AVAILABLE:
         return jsonify({"error": "AI mode not available - model checkpoint not found"}), 400
     
     INFERENCE_MODE = new_mode
     return jsonify({
         "message": f"Inference mode set to '{new_mode}'",
         "mode": INFERENCE_MODE
+    })
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """
+    NLP Chat endpoint.
+    Identifies molecules from text and generates descriptive sentences.
+    """
+    data = request.json
+    message = data.get('message', '').strip()
+    
+    if not message:
+        return jsonify({"error": "Empty message"}), 400
+
+    # 1. Identify molecule from text
+    found_mol = None
+    message_upper = message.upper()
+    
+    # Exhaustive search in MOLECULES_DATA if available
+    for mol in MOLECULES_DATA:
+        mol_name = str(mol.get('Name', '')).upper()
+        if mol_name and mol_name in message_upper:
+            found_mol = mol
+            break
+    
+    # 2. Extract molecule info (or use message as substance name)
+    if found_mol:
+        smiles = found_mol.get('Smiles') or found_mol.get('SMILES', '')
+        name = found_mol.get('Name', '')
+    else:
+        # If not in database, try to guess the name from message
+        # Take the last word as a heuristic or the whole message
+        words = message.split()
+        name = words[-1].strip('?!. ') if words else "Unknown"
+        smiles = None
+        print(f"Substance '{name}' not in DB, using generative fallback.")
+
+    # 3. Generate response text using NLP model
+    response_text = ""
+    if NLP_MODEL_AVAILABLE:
+        try:
+            idx_to_char = {v: k for k, v in nlp_vocab.items()}
+            prompt_text = f"What is {name}?"
+            input_ids = torch.tensor([[nlp_vocab.get(c, 0) for c in prompt_text]]).to('cpu')
+            
+            with torch.no_grad():
+                curr_ids = input_ids
+                generated_chars = []
+                hidden = None
+                for _ in range(120):
+                    logits, hidden = nlp_model(curr_ids[:, -1:], hidden)
+                    next_id = torch.argmax(logits[:, -1:], dim=-1).item()
+                    if next_id == nlp_vocab.get('<end>', 2):
+                        break
+                    generated_chars.append(idx_to_char.get(next_id, ' '))
+                    curr_ids = torch.cat([curr_ids, torch.tensor([[next_id]])], dim=1)
+                response_text = "".join(generated_chars).strip()
+        except Exception as e:
+            print(f"NLP Generation error: {e}")
+            response_text = f"This is {name}, a substance identified by our AI system."
+    else:
+        response_text = f"Identified {name} in the message. Database lookup for {name} is currently incomplete."
+
+    # 4. Search for 2D image in folder
+    image_2d = None
+    if name != "Unknown":
+        image_dir = os.path.join(os.path.dirname(__file__), '..', 'data', '2d_images')
+        image_path = os.path.join(image_dir, f"{name}.png")
+        if os.path.exists(image_path):
+            try:
+                with open(image_path, "rb") as img_file:
+                    image_2d = f"data:image/png;base64,{base64.b64encode(img_file.read()).decode('utf-8')}"
+            except Exception as e:
+                print(f"Error reading image file: {e}")
+    
+    # 5. Generate 3D structure using SMILES
+    sdf_block = generate_3d_structure(smiles) if smiles else None
+
+    # Handle case where both are missing but we want to show something
+    if not image_2d and not sdf_block:
+        print(f"No visual data for {name}.")
+
+    return jsonify({
+        "content": response_text,
+        "moleculeData": {
+            "name": name,
+            "info": response_text,
+            "smiles": smiles,
+            "image2d": image_2d,
+            "structure": sdf_block,
+            "format": "sdf"
+        }
     })
 
 
@@ -383,7 +405,7 @@ def predict():
     # AI MODE - Use neural network exclusively
     # ========================================================================
     elif request_mode == 'ai':
-        if not AI_MODEL_AVAILABLE:
+        if not NLP_MODEL_AVAILABLE:
             result = {
                 "error": "AI model not available",
                 "molecule": "Unknown",
@@ -399,7 +421,7 @@ def predict():
     # AUTO MODE - Try AI first, fallback if fails
     # ========================================================================
     elif request_mode == 'auto':
-        if AI_MODEL_AVAILABLE:
+        if NLP_MODEL_AVAILABLE:
             result = _ai_prediction(filepath)
             mode_used = 'ai'
             

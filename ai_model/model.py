@@ -22,20 +22,52 @@ from torch_geometric.nn import GCNConv, global_mean_pool
 
 
 # ============================================================================
-# CNN ENCODER - Custom Architecture (No Pretraining)
+# SIMPLE NLP MODEL - For Sentence Generation and Substance Identification
 # ============================================================================
-class ConvBlock(nn.Module):
+
+class MoleculeNLPModel(nn.Module):
     """
-    Basic convolutional block with Conv2d + BatchNorm + ReLU.
+    Simplified NLP Model for sentence generation.
+    Takes a query and generates a descriptive sentence about a molecule.
+    Also used to identify molecules from text.
     """
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
-        super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-    
-    def forward(self, x):
-        return self.relu(self.bn(self.conv(x)))
+    def __init__(self, vocab_size, embedding_dim=128, hidden_dim=256):
+        super(MoleculeNLPModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, vocab_size)
+        
+    def forward(self, x, hidden=None):
+        # x shape: (batch_size, seq_len)
+        embeds = self.embedding(x)
+        # embeds shape: (batch_size, seq_len, embedding_dim)
+        lstm_out, hidden = self.lstm(embeds, hidden)
+        # lstm_out shape: (batch_size, seq_len, hidden_dim)
+        logits = self.fc(lstm_out)
+        # logits shape: (batch_size, seq_len, vocab_size)
+        return logits, hidden
+
+
+def get_nlp_model(vocab_size):
+    """Factory function for the NLP model."""
+    return MoleculeNLPModel(vocab_size)
+
+
+# ============================================================================
+# DYNAMIC MODEL SELECTION
+# ============================================================================
+
+def get_model(vocab_size, num_node_features=9, num_numeric_features=23, mode='full'):
+    """
+    Returns the appropriate model based on mode.
+    Mode 'nlp' is the simplified sentence generator.
+    Mode 'full' is the original multimodal model.
+    """
+    if mode == 'nlp':
+        return get_nlp_model(vocab_size)
+    else:
+        # Original multimodal model (kept for backward compatibility or future use)
+        return ChemNetVisionModel(vocab_size, num_node_features, num_numeric_features)
 
 
 class ResidualBlock(nn.Module):
@@ -573,39 +605,6 @@ class ChemNetVisionModel(nn.Module):
             generated = self.decoder(fused, captions=None)
             
         return generated
-
-
-def get_model(vocab_size=100, num_node_features=9, num_numeric_features=23):
-    """
-    Factory function to create ChemNet-Vision model.
-    
-    Args:
-        vocab_size: Size of SMILES vocabulary
-        num_node_features: Number of atom features (default: 9)
-        num_numeric_features: Number of numeric molecular features (default: 23)
-    
-    Returns:
-        ChemNetVisionModel instance (trained from scratch)
-    """
-    model = ChemNetVisionModel(
-        num_node_features=num_node_features,
-        num_numeric_features=num_numeric_features,
-        vocab_size=vocab_size
-    )
-    
-    # Count and print parameters
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
-    print(f"\n{'='*50}")
-    print("ChemNet-Vision Model (Custom - No Pretraining)")
-    print(f"{'='*50}")
-    print(f"Total parameters:     {total_params:,}")
-    print(f"Trainable parameters: {trainable_params:,}")
-    print(f"Vocab size:           {vocab_size}")
-    print(f"{'='*50}\n")
-    
-    return model
 
 
 # ============================================================================
