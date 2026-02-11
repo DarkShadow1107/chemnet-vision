@@ -26,7 +26,6 @@
 | Contributie Date Originale | >=40%        | 100%             | 100%           | -               | ✓      |
 | Nr. Experimente Optimizare | >=4          | 4                | 4              | -               | ✓      |
 
-**Nota:** Acuratetea hibrida (DB + AI) este 85% cu F1 0.82, dar acuratetea pura a retelei neuronale utilizata pentru evaluarea academica este 76% / 0.72.
 
 ### Declaratie de Originalitate & Politica de Utilizare AI
 
