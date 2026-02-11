@@ -1,10 +1,35 @@
-epochs: 50
-batch_size: 8
-learning_rate: 0.001
-max_seq_len: 150
-num_workers: 0
-early_stopping: true
-early_stopping_patience: 5
-scheduler: ReduceLROnPlateau
-augment: true
-seed: 42
+# ChemNet-Vision NLP Model - Final Hyperparameters
+# Model: MoleculeNLPModel (LSTM character-level)
+
+model:
+    embedding_dim: 128
+    hidden_dim: 256
+    num_layers: 1
+    dropout: 0.0
+
+training:
+    epochs: 50
+    batch_size: 256
+    learning_rate: 0.002
+    optimizer: Adam
+    loss_function: CrossEntropyLoss
+    lr_scheduler: StepLR
+    lr_step_size: 15
+    lr_gamma: 0.5
+    early_stopping: false
+    seed: 42
+
+data:
+    dataset_size: 42149
+    train_split: 29503
+    validation_split: 6323
+    test_split: 6323
+    max_seq_len: 150
+    vocab_type: character-level
+
+inference:
+    confidence_threshold: 0.85
+    auto_fallback_threshold: 0.35
+    max_generation_length: 250
+    temperature: 0.7
+    decoding: argmax

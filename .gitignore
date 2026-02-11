@@ -14,6 +14,12 @@
 # testing
 /coverage
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 #data
 /data
 
@@ -46,4 +52,3 @@ next-env.d.ts
 
 # models
 /saved_models
-/models

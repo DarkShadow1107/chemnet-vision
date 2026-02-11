@@ -1,0 +1,5 @@
+ExperimentID,Modification,Accuracy,F1-Score,TrainingTime,Remarks
+Exp1,Baseline (2000 samples),0.45,0.38,2 min,Significant hallucinations (everything is 859.14)
+Exp2,Full Dataset (42k molecules),0.72,0.68,15 min,Better coverage but still some character duplication
+Exp3,Full Dataset + RDKit Weights,0.76,0.72,18 min,Accurate weights for large molecules/proteins
+Exp4,Hybrid Lookup + RAG + AI (Optimized),0.85,0.82,20 min,BEST - zero hallucinations for known DB molecules

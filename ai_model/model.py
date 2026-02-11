@@ -27,24 +27,27 @@ from torch_geometric.nn import GCNConv, global_mean_pool
 
 class MoleculeNLPModel(nn.Module):
     """
-    Simplified NLP Model for sentence generation.
-    Takes a query and generates a descriptive sentence about a molecule.
-    Also used to identify molecules from text.
+    NLP Model for molecule description generation.
+    Uses a 2-layer LSTM with dropout for better generalization
+    and a larger hidden dim for memorizing 42k molecule formulas.
     """
-    def __init__(self, vocab_size, embedding_dim=128, hidden_dim=256):
+    def __init__(self, vocab_size, embedding_dim=128, hidden_dim=512, num_layers=2, dropout=0.2):
         super(MoleculeNLPModel, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.lstm = nn.LSTM(
+            embedding_dim, hidden_dim,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0.0
+        )
+        self.layer_norm = nn.LayerNorm(hidden_dim)
         self.fc = nn.Linear(hidden_dim, vocab_size)
-        
+
     def forward(self, x, hidden=None):
-        # x shape: (batch_size, seq_len)
         embeds = self.embedding(x)
-        # embeds shape: (batch_size, seq_len, embedding_dim)
         lstm_out, hidden = self.lstm(embeds, hidden)
-        # lstm_out shape: (batch_size, seq_len, hidden_dim)
+        lstm_out = self.layer_norm(lstm_out)
         logits = self.fc(lstm_out)
-        # logits shape: (batch_size, seq_len, vocab_size)
         return logits, hidden
 
 

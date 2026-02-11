@@ -21,7 +21,6 @@ export default function ChatInterface() {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const [inferenceMode, setInferenceMode] = useState<InferenceMode>("auto");
 	const [aiAvailable, setAiAvailable] = useState<boolean>(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	const scrollToBottom = () => {
@@ -141,7 +140,7 @@ export default function ChatInterface() {
 				id: "init",
 				role: "assistant",
 				content:
-					"Hello! I am ChemNet-Vision. I can analyze molecule images or answer questions about chemical compounds. Try asking about 'Aspirin' or upload a 2D structure!",
+					"Hello! I am ChemNet-Vision. I can answer questions about chemical compounds. Try asking about 'Caffeine', 'Aspirin', or 'Paracetamol'!",
 			},
 		]);
 		setIsSidebarOpen(false);
@@ -206,64 +205,6 @@ export default function ChatInterface() {
 		}
 	};
 
-	const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files && e.target.files[0]) {
-			const file = e.target.files[0];
-			const imageUrl = URL.createObjectURL(file);
-
-			const userMessage: Message = {
-				id: Date.now().toString(),
-				role: "user",
-				content: "Analyze this molecule:",
-				image: imageUrl,
-			};
-
-			setMessages((prev) => [...prev, userMessage]);
-			setLoading(true);
-
-			const formData = new FormData();
-			formData.append("file", file);
-
-			try {
-				const response = await fetch(`${BACKEND_URL}/predict`, {
-					method: "POST",
-					body: formData,
-				});
-				const data = await response.json();
-
-				const aiResponse: Message = {
-					id: (Date.now() + 1).toString(),
-					role: "assistant",
-					content: data.error ? `Error: ${data.error}` : "Here is what I found based on the image analysis:",
-					moleculeData: !data.error
-						? {
-								name: data.molecule,
-								info: data.info,
-								smiles: data.smiles,
-								structure: data.structure, // SDF string from backend
-								format: data.format || "sdf",
-								image2d: data.image2d, // Base64 2D image from RDKit
-						  }
-						: undefined,
-				};
-				setMessages((prev) => [...prev, aiResponse]);
-			} catch (error) {
-				console.error("Error uploading file:", error);
-				setMessages((prev) => [
-					...prev,
-					{
-						id: (Date.now() + 1).toString(),
-						role: "assistant",
-						content: "Sorry, I encountered an error processing your image.",
-					},
-				]);
-			} finally {
-				setLoading(false);
-				if (fileInputRef.current) fileInputRef.current.value = "";
-			}
-		}
-	};
-
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
@@ -314,63 +255,6 @@ export default function ChatInterface() {
 						</svg>
 						New Chat
 					</button>
-
-					{/* Inference Mode Selector */}
-					<div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/10">
-						<div className="flex items-center justify-between mb-2">
-							<span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inference Mode</span>
-							{aiAvailable ? (
-								<span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full">AI Ready</span>
-							) : (
-								<span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full">
-									AI Offline
-								</span>
-							)}
-						</div>
-						<div className="flex gap-1">
-							<button
-								onClick={() => updateInferenceMode("ai")}
-								disabled={!aiAvailable}
-								className={`flex-1 py-2 px-2 text-xs font-medium rounded-lg transition-all ${
-									inferenceMode === "ai"
-										? "bg-blue-600 text-white shadow-lg"
-										: aiAvailable
-										? "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
-										: "bg-white/5 text-slate-600 cursor-not-allowed"
-								}`}
-								title="Use neural network for predictions"
-							>
-								🧠 AI
-							</button>
-							<button
-								onClick={() => updateInferenceMode("auto")}
-								className={`flex-1 py-2 px-2 text-xs font-medium rounded-lg transition-all ${
-									inferenceMode === "auto"
-										? "bg-purple-600 text-white shadow-lg"
-										: "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
-								}`}
-								title="Try AI first, fallback to database if fails"
-							>
-								⚡ Auto
-							</button>
-							<button
-								onClick={() => updateInferenceMode("fallback")}
-								className={`flex-1 py-2 px-2 text-xs font-medium rounded-lg transition-all ${
-									inferenceMode === "fallback"
-										? "bg-orange-600 text-white shadow-lg"
-										: "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
-								}`}
-								title="Use database lookup only (no AI)"
-							>
-								📚 DB
-							</button>
-						</div>
-						<p className="text-xs text-slate-500 mt-2">
-							{inferenceMode === "ai" && "Using neural network for predictions"}
-							{inferenceMode === "auto" && "AI first, then database fallback"}
-							{inferenceMode === "fallback" && "Database lookup only (no AI)"}
-						</p>
-					</div>
 
 					<div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
 						<h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-2">Recent</h3>
@@ -431,40 +315,12 @@ export default function ChatInterface() {
 				<div className="absolute bottom-6 left-0 right-0 px-4 z-20">
 					<div className="max-w-3xl mx-auto">
 						<div className="glass p-2 rounded-3xl shadow-2xl shadow-black/50 border border-white/10 flex items-end gap-2 backdrop-blur-xl">
-							<button
-								onClick={() => fileInputRef.current?.click()}
-								className="p-3 text-slate-400 hover:text-blue-400 hover:bg-white/5 rounded-full transition-all duration-200"
-								title="Upload Image"
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									strokeWidth={1.5}
-									stroke="currentColor"
-									className="w-6 h-6"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-									/>
-								</svg>
-							</button>
-							<input
-								type="file"
-								ref={fileInputRef}
-								onChange={handleFileUpload}
-								accept="image/*"
-								className="hidden"
-							/>
-
 							<div className="flex-1 relative">
 								<textarea
 									value={input}
 									onChange={(e) => setInput(e.target.value)}
 									onKeyDown={handleKeyDown}
-									placeholder="Ask about a molecule or upload an image..."
+									placeholder="Ask about a molecule..."
 									className="w-full bg-transparent text-white p-3 max-h-32 min-h-12 resize-none focus:outline-none placeholder:text-slate-500"
 									rows={1}
 									style={{ height: "auto", minHeight: "48px" }}

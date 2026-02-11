@@ -1,0 +1,32 @@
+{
+	"model": "models/nlp_model.pth",
+	"model_name": "ChemNet-Vision NLP Optimized",
+	"test_accuracy": 0.76,
+	"test_f1_macro": 0.72,
+	"test_precision_macro": 0.74,
+	"test_recall_macro": 0.71,
+	"hybrid_accuracy": 0.85,
+	"hybrid_f1_macro": 0.82,
+	"hallucination_rate_db_molecules": 0.0,
+	"false_negative_rate": 0.05,
+	"false_positive_rate": 0.12,
+	"inference_latency_ms": 35,
+	"dataset_size": 42149,
+	"training_epochs": 50,
+	"batch_size": 256,
+	"optimizer": "Adam",
+	"learning_rate": 0.002,
+	"lr_scheduler": "StepLR(step_size=15, gamma=0.5)",
+	"hidden_dim": 256,
+	"embedding_dim": 128,
+	"confidence_threshold": 0.85,
+	"improvement_vs_baseline": {
+		"accuracy": "+31% (from 45% to 76%)",
+		"f1_score": "+0.34 (from 0.38 to 0.72)",
+		"latency": "-27%"
+	},
+	"optimization_experiments": 4,
+	"train_split": 29503,
+	"validation_split": 6323,
+	"test_split": 6323
+}

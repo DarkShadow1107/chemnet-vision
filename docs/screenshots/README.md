@@ -1,17 +1,16 @@
 # Screenshots
 
-Acest director conține screenshot-uri demonstrative ale interfeței ChemNet-Vision.
+Acest director contine screenshot-uri demonstrative ale interfetei ChemNet-Vision.
 
 ## Screenshots necesare:
 
-1. **ui_demo.png** - Interfața principală a aplicației
-2. **chat_example.png** - Exemplu conversație cu sistemul
-3. **molecule_3d.png** - Vizualizare 3D a unei molecule
-4. **prediction_result.png** - Rezultat predicție SMILES
+1. **ui_demo.png** - Interfata principala a aplicatiei (Etapa 4)
+2. **inference_real.png** - Inferenta model antrenat (Etapa 5)
+3. **inference_optimized.png** - Inferenta model optimizat cu card molecula (Etapa 6)
 
-## Cum să adaugi screenshots:
+## Cum sa adaugi screenshots:
 
-1. Pornește aplicația:
+1. Porneste aplicatia:
 
     ```bash
     # Terminal 1
@@ -23,11 +22,11 @@ Acest director conține screenshot-uri demonstrative ale interfeței ChemNet-Vis
 
 2. Deschide http://localhost:3000
 
-3. Fă screenshot-uri și salvează-le aici
+3. Fa screenshot-uri si salveaza-le aici
 
-## Exemple de funcționalități de capturat:
+## Exemple de functionalitati de capturat:
 
--   Chat interface cu mesaje
--   Upload imagine și predicție
--   Vizualizator 3D molecule
--   Toggle AI/Fallback mode
+- Chat interface cu mesaje
+- Card molecula cu informatii structurate (nume, formula, greutate)
+- Vizualizator 2D (RDKit) si 3D (Py3Dmol) molecule
+- Interogare molecule: "Describe Caffeine", "Tell me about Aspirin"

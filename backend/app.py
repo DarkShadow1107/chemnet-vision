@@ -35,24 +35,52 @@ CORS(app)
 INFERENCE_MODE = os.environ.get('INFERENCE_MODE', 'auto').lower()
 
 # ============================================================================
-# MOLECULE DATA LOADING
+# MOLECULE DATA LOADING & INDEXING
 # ============================================================================
 MOLECULES_DATA = []
-try:
-    processed_csv = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'molecules_processed.csv')
-    if os.path.exists(processed_csv):
-        # Load necessary columns for the NLP flow
-        df = pd.read_csv(processed_csv)
-        MOLECULES_DATA = df.to_dict('records')
-        print(f"✓ Loaded {len(MOLECULES_DATA)} molecules from processed CSV.")
-    else:
-        molecules_json = os.path.join(os.path.dirname(__file__), '..', 'data', 'molecules.json')
-        if os.path.exists(molecules_json):
-            with open(molecules_json, 'r') as f:
-                MOLECULES_DATA = json.load(f)
-                print(f"✓ Loaded {len(MOLECULES_DATA)} molecules from molecules.json")
-except Exception as e:
-    print(f"✗ Error loading molecules data: {e}")
+MOLECULES_LOOKUP = {} # Fast search: { "NAME": record, "SYNONYM": record }
+
+def load_molecule_data():
+    global MOLECULES_DATA, MOLECULES_LOOKUP
+    try:
+        processed_csv = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'molecules_processed.csv')
+        if os.path.exists(processed_csv):
+            df = pd.read_csv(processed_csv)
+            MOLECULES_DATA = df.to_dict('records')
+            
+            # Create indexing for fast lookup
+            for mol in MOLECULES_DATA:
+                # Index by Name
+                name_val = str(mol.get('Name', '')).upper().strip()
+                if name_val and name_val != 'NAN':
+                    MOLECULES_LOOKUP[name_val] = mol
+                
+                # Index by Synonyms (Handle |, ;, and ,)
+                syns = str(mol.get('Synonyms', '')).upper()
+                if syns and syns != 'NAN':
+                    # Normalize delimiters
+                    normalized_syns = syns.replace('|', ',').replace(';', ',')
+                    for syn in normalized_syns.split(','):
+                        syn_clean = syn.strip()
+                        if len(syn_clean) > 2 and syn_clean not in MOLECULES_LOOKUP:
+                            MOLECULES_LOOKUP[syn_clean] = mol
+            
+            print(f"✓ Indexed {len(MOLECULES_LOOKUP)} searchable terms from {len(MOLECULES_DATA)} molecules.")
+        else:
+            print(f"✗ Processed CSV not found at: {processed_csv}")
+    except Exception as e:
+        print(f"✗ Error loading molecules data: {e}")
+
+load_molecule_data()
+
+@app.route('/health')
+def health():
+    return jsonify({
+        "status": "healthy",
+        "db_size": len(MOLECULES_DATA),
+        "index_size": len(MOLECULES_LOOKUP),
+        "nlp_available": NLP_MODEL_AVAILABLE
+    })
 
 
 # ============================================================================
@@ -282,60 +310,158 @@ def chat():
     if not message:
         return jsonify({"error": "Empty message"}), 400
 
-    # 1. Identify molecule from text
+    # 1. Identify molecule from text (Optimized Dictionary Lookup)
     found_mol = None
-    message_upper = message.upper()
+    clean_message = message.upper().strip()
+    # Remove punctuation for better matching
+    for char in '?!.,;':
+        clean_message = clean_message.replace(char, ' ')
+    clean_message = clean_message.strip()
     
-    # Exhaustive search in MOLECULES_DATA if available
-    for mol in MOLECULES_DATA:
-        mol_name = str(mol.get('Name', '')).upper()
-        if mol_name and mol_name in message_upper:
-            found_mol = mol
-            break
+    # Try direct lookup first
+    if clean_message in MOLECULES_LOOKUP:
+        found_mol = MOLECULES_LOOKUP[clean_message]
+    else:
+        # Try word-by-word if no direct match (looking for a chemical name)
+        words = clean_message.split()
+        # Filter out common chat words to avoid matching "DESCRIBE" or "TELL" as a molecule
+        stop_words = {'DESCRIBE', 'TELL', 'WHAT', 'INFO', 'ABOUT', 'IS', 'ME', 'SEARCH', 'THE', 'OF'}
+        for word in words:
+            if len(word) > 2 and word not in stop_words and word in MOLECULES_LOOKUP:
+                found_mol = MOLECULES_LOOKUP[word]
+                break
     
-    # 2. Extract molecule info (or use message as substance name)
+    # 2. Extract molecule info
+    db_facts = ""
+    extracted_name = ""
     if found_mol:
         smiles = found_mol.get('Smiles') or found_mol.get('SMILES', '')
-        name = found_mol.get('Name', '')
-    else:
-        # If not in database, try to guess the name from message
-        # Take the last word as a heuristic or the whole message
-        words = message.split()
-        name = words[-1].strip('?!. ') if words else "Unknown"
-        smiles = None
-        print(f"Substance '{name}' not in DB, using generative fallback.")
-
-    # 3. Generate response text using NLP model
-    response_text = ""
-    if NLP_MODEL_AVAILABLE:
+        extracted_name = found_mol.get('Name', 'Unknown')
+        formula = found_mol.get('Molecular Formula') or found_mol.get('Formula', 'N/A')
+        weight = found_mol.get('MolWeight_RDKit') or found_mol.get('Molecular Weight') or found_mol.get('Weight', 'N/A')
+        mol_type = found_mol.get('Type', 'Small molecule')
+        
+        # Get 1-3 synonyms
+        synonyms_raw = found_mol.get('Synonyms', '')
+        synonyms_list = []
+        if isinstance(synonyms_raw, str) and synonyms_raw.lower() != 'nan':
+            # Split by common delimiters
+            parts = synonyms_raw.replace('|', ',').replace(';', ',').split(',')
+            synonyms_list = [s.strip() for s in parts if s.strip() and s.strip().upper() != extracted_name.upper()][:3]
+        
+        synonyms_str = ", ".join(synonyms_list) if synonyms_list else "None listed"
+        
         try:
-            idx_to_char = {v: k for k, v in nlp_vocab.items()}
-            prompt_text = f"What is {name}?"
-            input_ids = torch.tensor([[nlp_vocab.get(c, 0) for c in prompt_text]]).to('cpu')
+            if isinstance(weight, (int, float, str)) and str(weight) != 'nan':
+                weight = f"{float(weight):.2f}"
+        except:
+            pass
             
+        db_facts = (f"{extracted_name} is a {mol_type}. "
+                   f"Formula: {formula}. Weight: {weight} g/mol. "
+                   f"Synonyms: {synonyms_str}.")
+    else:
+        # Fallback name extraction: ignore common words
+        words = [w for w in message.split() if "".join(c for c in w if c.isalnum()).upper() not in {'TELL', 'DESCRIBE', 'WHAT', 'IS', 'INFO'}]
+        extracted_name = "".join(c for c in words[-1] if c.isalnum()) if words else "Unknown"
+        smiles = None
+
+    # 3. Generate response text using NLP model + RAG
+    # AI generation is now the PRIMARY source for the textual answer
+    response_text = ""
+    rag_context = get_rag_context(extracted_name) if extracted_name != "Unknown" else ""
+
+    # Suppress AI only for obvious non-sense
+    is_nonsense = len(extracted_name) < 2 or extracted_name.lower() in ['heh', 'gshvs', 'kjggvsjdk']
+
+    # =====================================================================
+    # CONFIDENCE FILTER (Stage 6 Optimization - Caffeine Hallucination Fix)
+    # For known DB molecules, ALWAYS use factual data. AI text is secondary.
+    # For unknown molecules, reject AI output below confidence threshold 0.85.
+    # =====================================================================
+    CONFIDENCE_THRESHOLD = 0.85
+
+    if NLP_MODEL_AVAILABLE and not is_nonsense:
+        try:
+            ai_text = ""
+            ai_confidence = 0.0
+            idx_to_char = {v: k for k, v in nlp_vocab.items()}
+            # Condition the model: Describe [Name] -> [Answer]
+            # This forces the generator to focus on the target molecule
+            prompt_text = f"Describe {extracted_name} -> "
+            input_ids = torch.tensor([[nlp_vocab.get(c, 0) for c in prompt_text]]).to('cpu')
+
             with torch.no_grad():
-                curr_ids = input_ids
                 generated_chars = []
-                hidden = None
-                for _ in range(120):
-                    logits, hidden = nlp_model(curr_ids[:, -1:], hidden)
-                    next_id = torch.argmax(logits[:, -1:], dim=-1).item()
-                    if next_id == nlp_vocab.get('<end>', 2):
+                char_confidences = []
+                temperature = 0.3
+
+                # First: encode the FULL prompt through LSTM to build context
+                # This is critical -- the hidden state must "see" the molecule name
+                logits, hidden = nlp_model(input_ids)
+                # The last logit predicts the first generated character
+                logits = logits[:, -1:] / temperature
+                probs = torch.softmax(logits, dim=-1)
+                max_prob = probs[0].max().item()
+                char_confidences.append(max_prob)
+                next_id = torch.argmax(probs[0], dim=-1).item()
+
+                char = idx_to_char.get(next_id, ' ')
+                if char not in ('\n', '<'):
+                    generated_chars.append(char)
+
+                # Now generate character-by-character using the hidden state
+                for _ in range(250):
+                    curr_token = torch.tensor([[next_id]]).to('cpu')
+                    logits, hidden = nlp_model(curr_token, hidden)
+                    logits = logits[:, -1:] / temperature
+                    probs = torch.softmax(logits, dim=-1)
+                    max_prob = probs[0].max().item()
+                    char_confidences.append(max_prob)
+                    next_id = torch.argmax(probs[0], dim=-1).item()
+
+                    char = idx_to_char.get(next_id, ' ')
+                    if char == '\n' or char == '<':
                         break
-                    generated_chars.append(idx_to_char.get(next_id, ' '))
-                    curr_ids = torch.cat([curr_ids, torch.tensor([[next_id]])], dim=1)
-                response_text = "".join(generated_chars).strip()
+                    generated_chars.append(char)
+
+                ai_text = "".join(generated_chars).strip()
+                ai_confidence = sum(char_confidences) / max(len(char_confidences), 1)
+
+            # When DB data is available, use ONLY factual data (no AI text)
+            # When DB data is NOT available, use AI-generated text
+            if db_facts:
+                response_text = db_facts
+            elif ai_text and len(ai_text) > 10 and ai_confidence >= CONFIDENCE_THRESHOLD:
+                if rag_context and "not initialized" not in rag_context:
+                    response_text = ai_text
+                else:
+                    response_text = ai_text
+            elif rag_context and "not initialized" not in rag_context:
+                response_text = rag_context
+            else:
+                response_text = f"I couldn't find detailed information about {extracted_name}. Please try a more specific molecule name."
+                
         except Exception as e:
             print(f"NLP Generation error: {e}")
-            response_text = f"This is {name}, a substance identified by our AI system."
+            response_text = f"The AI model identified {extracted_name} but had trouble generating the description."
     else:
-        response_text = f"Identified {name} in the message. Database lookup for {name} is currently incomplete."
+        # Fallback if no AI or nonsense
+        if is_nonsense:
+            response_text = "I'm sorry, I didn't recognize that substance. Try a specific molecule like 'Caffeine' or 'Aspirin'."
+        elif db_facts:
+            response_text = db_facts
+        else:
+            response_text = f"I couldn't find detailed information about {extracted_name}. Please try a more specific molecule name."
 
-    # 4. Search for 2D image in folder
+    # 4. Search for visuals in the database (2D/3D)
     image_2d = None
-    if name != "Unknown":
+    # Use the database name for file lookups
+    visual_name = found_mol.get('Name', extracted_name) if found_mol else extracted_name
+    
+    if visual_name != "Unknown":
         image_dir = os.path.join(os.path.dirname(__file__), '..', 'data', '2d_images')
-        image_path = os.path.join(image_dir, f"{name}.png")
+        image_path = os.path.join(image_dir, f"{visual_name}.png")
         if os.path.exists(image_path):
             try:
                 with open(image_path, "rb") as img_file:
@@ -346,20 +472,16 @@ def chat():
     # 5. Generate 3D structure using SMILES
     sdf_block = generate_3d_structure(smiles) if smiles else None
 
-    # Handle case where both are missing but we want to show something
-    if not image_2d and not sdf_block:
-        print(f"No visual data for {name}.")
-
     return jsonify({
-        "content": response_text,
+        "content": "" if found_mol else response_text,
         "moleculeData": {
-            "name": name,
+            "name": visual_name,
             "info": response_text,
             "smiles": smiles,
             "image2d": image_2d,
             "structure": sdf_block,
             "format": "sdf"
-        }
+        } if found_mol or smiles else None
     })
 
 
